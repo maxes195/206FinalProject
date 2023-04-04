@@ -12,7 +12,7 @@ section .text ; Stores instructions for the computer to follow
 _start:
 
     Test
-
+    test123
 
 _end:
     mov rax, 0x3C
