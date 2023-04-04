@@ -11,6 +11,7 @@ section .text ; Stores instructions for the computer to follow
 
 _start:
 
+    Test
 
 
 _end:
