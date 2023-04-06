@@ -6,7 +6,7 @@
 ;|      x86-64, NASM
 ;|-----------------------------
 
-struc sockaddr_in_type
+struc sockaddr_out_type
 
     .sin_family:        resw 1
     .sin_port:          resw 1
