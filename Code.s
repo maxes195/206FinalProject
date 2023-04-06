@@ -13,7 +13,7 @@ _start:
 
     Test
     
-    test123
+
 
 _end:
     mov rax, 0x3C
@@ -21,3 +21,12 @@ _end:
     syscall
 
 section .data ; Where you declare and store data, static
+    sockaddr_out: 
+        istruc sockaddr_out_type 
+
+            at sockaddr_out_type.sin_family,  dw 0x02            ;AF_INET -> 2 
+            at sockaddr_out_type.sin_port,    dw 0x901F          ;(DEFAULT, passed on stack) port in hex and big endian order, 8080 -> 0x901F
+            at sockaddr_out_type.sin_addr,    dd 0x00            ;(DEFAULT) 00 -> any address, address 127.0.0.1 -> 0x0100007F
+
+        iend
+    sockaddr_out_l: equ $ - sockaddr_out
