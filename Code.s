@@ -6,6 +6,14 @@
 ;|      x86-64, NASM
 ;|-----------------------------
 
+struc sockaddr_in_type
+
+    .sin_family:        resw 1
+    .sin_port:          resw 1
+    .sin_addr:          resd 1
+    .sin_zero:          resd 2              
+endstruc
+
 global _start
 section .text ; Stores instructions for the computer to follow
 
