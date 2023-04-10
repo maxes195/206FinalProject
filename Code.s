@@ -18,7 +18,11 @@ global _start
 section .text ; Stores instructions for the computer to follow
 
 _start:
+    call _connection.socket_created
+    call _connection.connect
 
+
+    call _connection.close
 
 
 _connection:
@@ -29,23 +33,60 @@ _connection:
         mov rdx, 0x00                       ; int protocol is 0
         syscall
 
-        mov qword [sock_fd], rax
+        mov qword [sock_fd], rax            ; returns 
 
+        ret
     .connect:
         mov rax, 0x2A                       ; connect syscall
-        mov rdi, qword [sock_fd]
-        mov rsi, sockaddr_out               ;
-        mov rdx, sockaddr_out_l
+        mov rdi, qword [sock_fd]            ; file discriptor of the socket created in .socket_created
+        mov rsi, sockaddr_out               ; struct for connection
+        mov rdx, sockaddr_out_l             ; length of struct
 
-
-    .close_connection:    
-        mov rax, 0x3                        ; close syscall
-        mov rdi, qword [read_buffer_fd]     ; read buffer fd
-        syscall
-            
         cmp rax, 0x0
-        jne _network.close.return
+        jne
+        ret
+
+    .close:    
+        mov rax, 0x3                        ; close syscall
+        mov rdi, qword [sock_fd]            ; socket fd
+        syscall
+        cmp rax, 0x0
+        jne _end
         call _socket_closed
+        ret
+
+_messages:
+    .failed_connection
+        push failed_connection_l
+        push failed_connection_msg
+        call _print
+        jmp _end
+
+    .socket_closed
+        push failed_socket_closed_l   
+        push failed_socket_closed
+        call _print
+        jmp _end
+
+_print:
+    ; prologue
+    push rbp
+    mov rbp, rsp
+    push rdi
+    push rsi
+
+    mov rax, 0x1
+    mov rdi, 0x1
+    mov rsi, [rbp + 0x10]
+    mov rdx, [rbp + 0x18]
+    syscall
+
+    ; epilogue
+    pop rsi
+    pop rdi
+    pop rbp
+    ret 0x10                                ; clean up the stack upon return - not strictly following C Calling Convention
+
 _end:
     mov rax, 0x3C
     mov rdi, 0x00
@@ -62,5 +103,10 @@ section .data ; Where you declare and store data, static
         iend
     sockaddr_out_l: equ $ - sockaddr_out
 
+    ; falure messages
+    failed_connection_msg: db "Failed to connect to server.", 0xA, 0x0
+    failed_connection_l: equ $ - failed_connection_msg
+    socket_closed_msg: db "Closed socket.", 0xA, 0x0
+    socket_closed_l: equ $ - socket_closed_msg
 section .bss
-    sock_fd resq 1       ; Socket file discriptor 
+    sock_fd resq 1       ; file discriptor of the socket
