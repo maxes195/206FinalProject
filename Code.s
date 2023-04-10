@@ -43,7 +43,7 @@ _connection:
         mov rdx, sockaddr_out_l             ; length of struct
 
         cmp rax, 0x0
-        jne
+        jne _messages.failed_connection
         ret
 
     .close:    
@@ -52,8 +52,7 @@ _connection:
         syscall
         cmp rax, 0x0
         jne _end
-        call _socket_closed
-        ret
+        call _messages.socket_closed
 
 _messages:
     .failed_connection
@@ -63,8 +62,8 @@ _messages:
         jmp _end
 
     .socket_closed
-        push failed_socket_closed_l   
-        push failed_socket_closed
+        push socket_closed_l   
+        push socket_closed
         call _print
         jmp _end
 
