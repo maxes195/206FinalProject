@@ -19,7 +19,13 @@ section .text ; Stores instructions for the computer to follow
 
 _start:
 
-    Test
+
+_init:
+    mov rax, 0x29                       ; socket syscall
+    mov rdi, 0x02                       ; int domain - AF_INET = 2, AF_LOCAL = 1
+    mov rsi, 0x01                       ; int type - SOCK_STREAM = 1
+    mov rdx, 0x00                       ; int protocol is 0
+    syscall
     
 
 
