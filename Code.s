@@ -63,7 +63,7 @@ _messages:
 
     .socket_closed
         push socket_closed_l   
-        push socket_closed
+        push socket_closed_msg
         call _print
         jmp _end
 
