@@ -20,15 +20,24 @@ section .text ; Stores instructions for the computer to follow
 _start:
 
 
-_init:
-    mov rax, 0x29                       ; socket syscall
-    mov rdi, 0x02                       ; int domain - AF_INET = 2, AF_LOCAL = 1
-    mov rsi, 0x01                       ; int type - SOCK_STREAM = 1
-    mov rdx, 0x00                       ; int protocol is 0
-    syscall
-    
+
+_connection:
+    .socket_created:
+        mov rax, 0x29                       ; socket syscall
+        mov rdi, 0x02                       ; int domain - AF_INET = 2, AF_LOCAL = 1
+        mov rsi, 0x01                       ; int type - SOCK_STREAM = 1
+        mov rdx, 0x00                       ; int protocol is 0
+        syscall
 
 
+    .close_connection:    
+        mov rax, 0x3                        ; close syscall
+        mov rdi, qword [read_buffer_fd]     ; read buffer fd
+        syscall
+            
+        cmp rax, 0x0
+        jne _network.close.return
+        call _socket_closed
 _end:
     mov rax, 0x3C
     mov rdi, 0x00
