@@ -43,7 +43,8 @@ _connection:
         mov rdi, qword [sock_fd]            ; file discriptor of the socket created in .socket_created
         mov rsi, sockaddr_in               ; struct for connection
         mov rdx, sockaddr_in_l             ; length of struct
-
+        syscall
+        
         cmp rax, 0x0                        ; if RAX is not 0 then the connection has failed
         jne _messages.failed_connection
         ret
@@ -108,7 +109,7 @@ section .data ; Where you declare and store data, static
 
             at sockaddr_in_type.sin_family,  dw 0x02            ;AF_INET -> 2 
             at sockaddr_in_type.sin_port,    dw 0x901F          ;(DEFAULT, passed on stack) port in hex and big endian order, 8080 -> 0x901F
-            at sockaddr_in_type.sin_addr,    dd 0x0100007F      ;(DEFAULT) 00 -> any address, address 127.0.0.1 -> 0x0100007F
+            at sockaddr_in_type.sin_addr,    dd 0x00      ;(DEFAULT) 00 -> any address, address 127.0.0.1 -> 0x0100007F
 
         iend
     sockaddr_in_l: equ $ - sockaddr_in
