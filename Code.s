@@ -20,10 +20,30 @@ section .text ; Stores instructions for the computer to follow
 _start:
     call _connection.socket_created
     call _connection.connect
-
-
+    call _read_from_socket
+    call _write_text_to_screen
     call _connection.close
 
+_read_from_socket:
+    mov rax, 0x00                       ; read syscall
+    mov rdi, qword [sock_fd]            ; read buffer fd
+    mov rsi, msg_buf                    ; buffer pointer where message will be saved
+    mov rdx, 1024                       ; message buffer size
+    syscall
+
+    cmp rax, -1
+    je _messages.failed_read
+
+    ret
+
+_write_text_to_screen:
+    mov rax, 0x1
+    mov rdi, 0x1
+    mov rsi, msg_buf
+    mov rdx, 1024
+    syscall
+
+    ret
 
 _connection:
     .socket_created:
@@ -44,7 +64,7 @@ _connection:
         mov rsi, sockaddr_in               ; struct for connection
         mov rdx, sockaddr_in_l             ; length of struct
         syscall
-        
+
         cmp rax, 0x0                        ; if RAX is not 0 then the connection has failed
         jne _messages.failed_connection
         ret
@@ -68,6 +88,12 @@ _messages:
     .failed_connection:
         push failed_connection_l
         push failed_connection_msg
+        call _print
+        jmp _end
+
+    .failed_read:
+        push failed_read_l
+        push failed_read_msg
         call _print
         jmp _end
 
@@ -119,8 +145,11 @@ section .data ; Where you declare and store data, static
     socket_failed_l: equ $ - socket_failed_msg
     failed_connection_msg: db "Failed to connect to server.", 0xA, 0x0
     failed_connection_l: equ $ - failed_connection_msg
+    failed_read_msg: db "Failed to read from server.", 0xA, 0x0
+    failed_read_l: equ $ - failed_connection_msg
     socket_closed_msg: db "Closed socket.", 0xA, 0x0
     socket_closed_l: equ $ - socket_closed_msg
 
 section .bss
     sock_fd resq 1       ; file discriptor of the socket
+    msg_buf resb 1024
