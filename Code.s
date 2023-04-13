@@ -20,8 +20,13 @@ section .text ; Stores instructions for the computer to follow
 _start:
     call _connection.socket_created
     call _connection.connect
+
     call _read_from_socket
     call _write_text_to_screen
+
+    call _read_from_user
+    call _write_to_socket
+    
     call _connection.close
 
 _read_from_socket:
@@ -44,6 +49,19 @@ _write_text_to_screen:
     syscall
 
     ret
+
+_write_to_socket:
+    mov rax, 0x1
+    mov rdi, qword [sock_fd]
+    mov rsi, user_Input
+    mov rdx, 0x4
+    syscall
+_read_from_user:
+    mov rax, 0x0
+    mov rdi, 0x0
+    mov rsi, user_Input
+    mov rdx, 0x4
+    syscall
 
 _connection:
     .socket_created:
@@ -153,3 +171,4 @@ section .data ; Where you declare and store data, static
 section .bss
     sock_fd resq 1       ; file discriptor of the socket
     msg_buf resb 1024
+    user_Input resb 4
