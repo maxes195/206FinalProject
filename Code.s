@@ -18,16 +18,15 @@ global _start
 section .text ; Stores instructions for the computer to follow
 
 _start:
-    call _connection.socket_created
-    call _connection.connect
+    call _connection.socket_created     ; creates socket to be connected to server  
+    call _connection.connect            ; connects socket to server socket
 
-    call _read_from_socket
-    call _write_text_to_screen
+    call _read_from_socket              ; reads text sent by the server (asking how many random bytes the client wants)
+    call _write_text_to_screen          ; writes text from server to screen
 
-    call _read_from_user
-    call _write_to_socket
-    
-    call _connection.close
+    call _read_from_user                ; reads input from user (how many random bytes they want)
+    call _write_to_socket               ; sends input to server via socket
+    call _connection.close              ; closes connection to server
 
 _read_from_socket:
     mov rax, 0x00                       ; read syscall
@@ -56,6 +55,8 @@ _write_to_socket:
     mov rsi, user_Input
     mov rdx, 0x4
     syscall
+
+    ret
 _read_from_user:
     mov rax, 0x0
     mov rdi, 0x0
@@ -63,6 +64,7 @@ _read_from_user:
     mov rdx, 0x4
     syscall
 
+    ret
 _connection:
     .socket_created:
         mov rax, 0x29                       ; socket syscall
