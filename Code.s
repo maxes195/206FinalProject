@@ -19,16 +19,22 @@ section .text ; Stores instructions for the computer to follow
 
 _start:
     ;Code for the algorithm
-    mov ecx, arr_len ; set up a counter for the number of items left to sort
-    ;
-    call _connection.socket_created
-    call _connection.connect
+    mov ecx, arr_len                    ; set up a counter for the number of items left to sort
 
-    call _read_from_socket              ; reads text sent by the server (asking how many random bytes the client wants)
+    call _connection.socket_created     ; creates socket to be connected to server
+    call _connection.connect            ; connects socket to server socket
+
+    call _read_message_from_socket      ; reads text sent by the server (asking how many random bytes the client wants)
     call _write_text_to_screen          ; writes text from server to screen
 
     call _read_from_user                ; reads input from user (how many random bytes they want)
     call _write_to_socket               ; sends input to server via socket
+    
+    call _extend_arr                    ; extends the array to the length inputted by the user
+    call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
+    call _print_arr                     ; prints array
+
+    ;call oloop
     call _connection.close              ; closes connection to server
 
 ; Code for algorithm
@@ -108,7 +114,7 @@ oloop:
         ret ; return from the subroutine
 ;
 
-_read_from_socket:
+_read_message_from_socket:
     mov rax, 0x00                       ; read syscall
     mov rdi, qword [sock_fd]            ; read buffer fd
     mov rsi, msg_buf                    ; buffer pointer where message will be saved
@@ -132,7 +138,7 @@ _write_text_to_screen:
 _write_to_socket:
     mov rax, 0x1
     mov rdi, qword [sock_fd]
-    mov rsi, user_Input
+    mov rsi, user_input
     mov rdx, 0x4
     syscall
 
@@ -140,11 +146,54 @@ _write_to_socket:
 _read_from_user:
     mov rax, 0x0
     mov rdi, 0x0
-    mov rsi, user_Input
+    mov rsi, user_input
     mov rdx, 0x4
     syscall
 
     ret
+
+_read_bytes_from_socket:
+    mov rax, 0x0                        ; read syscall
+    mov rdi, qword [sock_fd]            ; read buffer fd
+    mov rsi, arra                       ; buffer pointer where message will be saved
+    mov rdx, [byte_num]                   ; message buffer size
+    syscall
+
+    cmp rax, -1
+    je _messages.failed_read
+
+    ret
+_extend_arr:
+    push qword [sock_fd]
+    push user_input
+    call _ascii_to_hex
+    mov [byte_num], rax
+    add rsp, 0x10                       ; clean up
+   
+    mov rsi, rax                        ; moves output from ascii to hex to rsi (size of array)
+    mov rax, 0x9                        ; mmap syscall
+    mov rdi, 0x00                       ; NULL
+    mov rdx, 0x01                       ; PROT_READ
+    or  rdx, 0x02                       ; PROT_WRITE
+    or  rdx, 0x04                       ; PROT_EXEC
+    mov r10, 0x20                       ; MAP_ANONYMOUS
+    or  r10, 0x02                       ; MAP_PRIVATE
+    mov  r9, 0x0
+    mov  r8, 0x0
+    syscall
+    mov [arra], rax
+
+    ret
+
+_print_arr:
+    mov rax, 0x1
+    mov rdi, 0x1
+    mov rsi, arra
+    mov rdx, byte_num
+    syscall
+
+    ret
+
 _connection:
     .socket_created:
         mov rax, 0x29                       ; socket syscall
@@ -224,6 +273,54 @@ _print:
     pop rbp
     ret 0x10                                ; clean up the stack upon return - not strictly following C Calling Convention
 
+_ascii_to_hex:
+    ; takes the first 8 bytes of the buffer in ascii form
+    ; returns hex representation in RAX
+    ; follows C Call Convention
+
+    ; prologue
+    push rbp
+    mov rbp, rsp
+    push rdi
+    push rsi
+
+    ; [rbp + 0x10] -> buffer pointer
+    ; [rbp + 0x18] -> buffer length
+    
+    xor rbx, rbx        ; clear counter
+    xor rcx, rcx        ; clear rcx
+    .loop:
+        mov rdx, qword [rbp + 0x10]
+        mov al, byte [rdx + rbx] ; load ascii payload
+        ; skip conversion if loaded less than 0x30 (non ASCII)
+        cmp rax, 0x30
+        jl .end_loop
+        ; if letter, subtract 0x37
+        cmp rax, 0x40
+        jg .letter 
+        sub rax, 0x30
+        jmp .end_bias
+    .letter:
+        sub rax, 0x37
+        jmp .end_bias
+
+    .end_bias:
+        or rcx, rax
+        shl rcx, 0x04
+    .end_loop:
+        inc rbx
+        cmp rbx, 0x08
+        jnz .loop
+
+        shr rcx, 0x4
+        mov rax, rcx
+
+    ; epilogue
+    pop rsi
+    pop rdi
+    pop rbp
+    ret
+
 _end:
     mov rax, 0x3C
     mov rdi, 0x00
@@ -257,4 +354,6 @@ section .data ; Where you declare and store data, static
 section .bss
     sock_fd resq 1       ; file discriptor of the socket
     msg_buf resb 1024
-    user_Input resb 4
+    user_input resb 4
+    byte_num resb 4
+    arra resb 1
