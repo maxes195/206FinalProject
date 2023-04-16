@@ -38,6 +38,7 @@ _start:
     call _write_to_socket               ; sends input to server via socket
     
     call _extend_arr                    ; extends the array to the length inputted by the user
+    call _sleep                         ; sleeps for 3 seconds before reading the bytes sent by the server
     call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
     call _print_arr                     ; prints array
 
@@ -329,12 +330,12 @@ _ascii_to_hex:
     pop rsi
     pop rdi
     pop rbp
-    
-    ret
 
+    ret
+; has the program wait 3 seconds before contiuing
 _sleep:
-    mov rax, 0x23
-    mov rdi, timespec_i
+    mov rax, 0x23                                               ; nanosleep syscall
+    mov rdi, timespec_i                                         ; time struct
     syscall
     
     ret
@@ -350,15 +351,15 @@ section .data ; Where you declare and store data, static
 
             at sockaddr_in_type.sin_family,  dw 0x02            ;AF_INET -> 2 
             at sockaddr_in_type.sin_port,    dw 0x901F          ;(DEFAULT, passed on stack) port in hex and big endian order, 8080 -> 0x901F
-            at sockaddr_in_type.sin_addr,    dd 0x00      ;(DEFAULT) 00 -> any address, address 127.0.0.1 -> 0x0100007F
+            at sockaddr_in_type.sin_addr,    dd 0x00            ;(DEFAULT) 00 -> any address, address 127.0.0.1 -> 0x0100007F
 
         iend
     sockaddr_in_l: equ $ - sockaddr_in
 
     timespec_i:
         istruc timespec
-            at timespec.tv_sec,     db 0x3         
-            at timespec.tv_nsec,    db 0x0
+            at timespec.tv_sec,     db 0x3                      ; time in seconds       
+            at timespec.tv_nsec,    db 0x0                      ; time in nano-seconds
         iend
 
     ; messages
