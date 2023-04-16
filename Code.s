@@ -6,6 +6,7 @@
 ;|      x86-64, NASM
 ;|-----------------------------
 
+; struct for the socket
 struc sockaddr_in_type
 
     .sin_family:        resw 1
@@ -113,61 +114,61 @@ oloop:
         pop rax ; restore the value of rax from the stack
         ret ; return from the subroutine
 ;
-
+; reads welcome and request messages sent by the server and stores them in msg_buf
 _read_message_from_socket:
     mov rax, 0x00                       ; read syscall
-    mov rdi, qword [sock_fd]            ; read buffer fd
+    mov rdi, qword [sock_fd]            ; socket fd
     mov rsi, msg_buf                    ; buffer pointer where message will be saved
     mov rdx, 1024                       ; message buffer size
     syscall
 
-    cmp rax, -1
-    je _messages.failed_read
+    cmp rax, -1                         ; if this syscall returns -1 it indicates a failed read and therefore jumps to failed read message and exits.
+    je _messages.failed_read            ; jumps to fail message
 
     ret
-
+; writes welcome message caught by _read_message_from_socket
 _write_text_to_screen:
-    mov rax, 0x1
-    mov rdi, 0x1
-    mov rsi, msg_buf
-    mov rdx, 1024
+    mov rax, 0x1                        ; write syscall
+    mov rdi, 0x1                        ; stdout code
+    mov rsi, msg_buf                    ; buffer pointer where message is saved
+    mov rdx, 1024                       ; message buffer size
     syscall
 
     ret
-
+; writes the input of the user to the socket to get transfered to the server
 _write_to_socket:
-    mov rax, 0x1
-    mov rdi, qword [sock_fd]
-    mov rsi, user_input
-    mov rdx, 0x4
+    mov rax, 0x1                        ; write syscall
+    mov rdi, qword [sock_fd]            ; socket fd
+    mov rsi, user_input                 ; stored user input
+    mov rdx, 0x4                        ; buffer size
     syscall
 
     ret
+; reads input from user about how many bytes to request
 _read_from_user:
-    mov rax, 0x0
-    mov rdi, 0x0
-    mov rsi, user_input
-    mov rdx, 0x4
+    mov rax, 0x0                        ; read syscall
+    mov rdi, 0x0                        ; stdin code
+    mov rsi, user_input                 ; storing the user input
+    mov rdx, 0x4                        ; buffer size
     syscall
 
     ret
-
+; reads the random bytes sent by the server, uses the users input to get exactly what the user requested
 _read_bytes_from_socket:
     mov rax, 0x0                        ; read syscall
-    mov rdi, qword [sock_fd]            ; read buffer fd
+    mov rdi, qword [sock_fd]            ; socket fd
     mov rsi, arra                       ; buffer pointer where message will be saved
-    mov rdx, [byte_num]                   ; message buffer size
+    mov rdx, [byte_num]                 ; message buffer size from user input
     syscall
 
-    cmp rax, -1
-    je _messages.failed_read
+    cmp rax, -1                         ; if this syscall returns -1 it indicates a failed read and therefore jumps to failed read message and exits.
+    je _messages.failed_read            ; jumps to fail message
 
     ret
+; extends the array to the length specified by the user
 _extend_arr:
-    push qword [sock_fd]
-    push user_input
-    call _ascii_to_hex
-    mov [byte_num], rax
+    call _ascii_to_hex                  ; gets length requested using the users own input
+    mov [byte_num], rax                 ; moves output of _ascii_to_hex into byte_num var
     add rsp, 0x10                       ; clean up
    
     mov rsi, rax                        ; moves output from ascii to hex to rsi (size of array)
@@ -184,17 +185,19 @@ _extend_arr:
     mov [arra], rax
 
     ret
-
+; prints pre-sorted array into terminal
 _print_arr:
-    mov rax, 0x1
-    mov rdi, 0x1
-    mov rsi, arra
-    mov rdx, byte_num
+    mov rax, 0x1                        ; write syscall
+    mov rdi, 0x1                        ; stdin code
+    mov rsi, arra                       ; stored array of random bytes
+    mov rdx, byte_num                   ; length of array
     syscall
 
     ret
 
+; deals with opening an closing a connection to the server
 _connection:
+    ; creates socket thats used to connect to the server
     .socket_created:
         mov rax, 0x29                       ; socket syscall
         mov rdi, 0x02                       ; int domain - AF_INET = 2, AF_LOCAL = 1
@@ -202,22 +205,23 @@ _connection:
         mov rdx, 0x00                       ; int protocol is 0
         syscall
         
-        cmp rax, -1
-        je _messages.socket_failed
+        cmp rax, -1                         ; checks if syscall returns -1 indicating a failure
+        je _messages.socket_failed          ; jumps to failure message
         mov qword [sock_fd], rax            ; takes the return of socket syscall (fd) and stores it in sock_fd 
 
         ret
+    ; connects to the server using the connect syscall with the socket created
     .connect:
         mov rax, 0x2A                       ; connect syscall
         mov rdi, qword [sock_fd]            ; file discriptor of the socket created in .socket_created
-        mov rsi, sockaddr_in               ; struct for connection
-        mov rdx, sockaddr_in_l             ; length of struct
+        mov rsi, sockaddr_in                ; struct for connection
+        mov rdx, sockaddr_in_l              ; length of struct
         syscall
 
         cmp rax, 0x0                        ; if RAX is not 0 then the connection has failed
-        jne _messages.failed_connection
+        jne _messages.failed_connection     ; jumps to failure message
         ret
-
+    ; closes connection when program is complete
     .close:    
         mov rax, 0x3                        ; close syscall
         mov rdi, qword [sock_fd]            ; socket fd
