@@ -14,6 +14,12 @@ struc sockaddr_in_type
     .sin_addr:          resd 1
     .sin_zero:          resd 2              
 endstruc
+; struct used for nanosleep
+struc timespec
+
+    .tv_sec             resb 1          ; seconds
+    .tv_nsec            resb 1          ; nanoseconds
+endstruc
 
 global _start
 section .text ; Stores instructions for the computer to follow
@@ -323,6 +329,14 @@ _ascii_to_hex:
     pop rsi
     pop rdi
     pop rbp
+    
+    ret
+
+_sleep:
+    mov rax, 0x23
+    mov rdi, timespec_i
+    syscall
+    
     ret
 
 _end:
@@ -340,6 +354,12 @@ section .data ; Where you declare and store data, static
 
         iend
     sockaddr_in_l: equ $ - sockaddr_in
+
+    timespec_i:
+        istruc timespec
+            at timespec.tv_sec,     db 0x3         
+            at timespec.tv_nsec,    db 0x0
+        iend
 
     ; messages
     socket_failed_msg: db "Socket creation failed.", 0xA, 0x0
