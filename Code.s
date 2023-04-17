@@ -38,7 +38,8 @@ _start:
     call _write_to_socket               ; sends input to server via socket
     
     call _extend_arr                    ; extends the array to the length inputted by the user
-    call _sleep                         ; sleeps for 3 seconds before reading the bytes sent by the server
+    ;call _sleep                         ; sleeps for 3 seconds before reading the bytes sent by the server
+    ;call _read_from_user 
     call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
     call _print_arr                     ; prints array
 
@@ -162,23 +163,31 @@ _read_from_user:
     ret
 ; reads the random bytes sent by the server, uses the users input to get exactly what the user requested
 _read_bytes_from_socket:
-    mov rax, 0x0                        ; read syscall
-    mov rdi, qword [sock_fd]            ; socket fd
-    mov rsi, arra                       ; buffer pointer where message will be saved
-    mov rdx, [byte_num]                 ; message buffer size from user input
-    syscall
+                    
+    xor r10, r10
+    .loop:
+        mov rax, 0x0                    ; read syscall
+        mov rdi, qword [sock_fd]        ; socket fd
+        lea rsi, [arra + r10]          ; buffer pointer where message will be saved
+        mov rdx, 0x1                    ; message buffer size from user input
+        syscall
 
-    cmp rax, -1                         ; if this syscall returns -1 it indicates a failed read and therefore jumps to failed read message and exits.
-    je _messages.failed_read            ; jumps to fail message
+        cmp rax, -1                         ; if this syscall returns -1 it indicates a failed read and therefore jumps to failed read message and exits.
+        je _messages.failed_read            ; jumps to fail message
+        inc r10
+        cmp r10, [byte_num]
+        jle _read_bytes_from_socket.loop
 
     ret
 ; extends the array to the length specified by the user
 _extend_arr:
+    push qword [sock_fd]
+    push user_input
     call _ascii_to_hex                  ; gets length requested using the users own input
     mov [byte_num], rax                 ; moves output of _ascii_to_hex into byte_num var
     add rsp, 0x10                       ; clean up
    
-    mov rsi, rax                        ; moves output from ascii to hex to rsi (size of array)
+    mov si, ax                        ; moves output from ascii to hex to rsi (size of array)
     mov rax, 0x9                        ; mmap syscall
     mov rdi, 0x00                       ; NULL
     mov rdx, 0x01                       ; PROT_READ
@@ -197,7 +206,7 @@ _print_arr:
     mov rax, 0x1                        ; write syscall
     mov rdi, 0x1                        ; stdin code
     mov rsi, arra                       ; stored array of random bytes
-    mov rdx, byte_num                   ; length of array
+    mov dx,  [byte_num]                   ; length of array
     syscall
 
     ret
@@ -369,7 +378,7 @@ section .data ; Where you declare and store data, static
     failed_connection_l: equ $ - failed_connection_msg
     failed_read_msg: db "Failed to read from server.", 0xA, 0x0
     failed_read_l: equ $ - failed_connection_msg
-    socket_closed_msg: db "Closed socket.", 0xA, 0x0
+    socket_closed_msg: db 0xA, "Closed socket.", 0xA, 0x0
     socket_closed_l: equ $ - socket_closed_msg
 
     ;Code for the algorithm
