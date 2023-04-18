@@ -33,6 +33,12 @@ _start:
     call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
     call _print_arr                     ; prints array
 
+    call _open_file
+    call _write_rad_msg_to_file
+    call _write_bytes_to_file
+    call _write_sorted_msg_to_file
+    call _close_file
+
     call _connection.close              ; closes connection to server
 
 ; reads welcome and request messages sent by the server and stores them in msg_buf
@@ -120,7 +126,7 @@ _extend_arr:
     syscall
 
     cmp rax, -1
-    je messages.failed_mmap
+    je _messages.failed_mmap
 
     mov [arra], rax
 
@@ -136,6 +142,53 @@ _print_arr:
 
     cmp rax, -1
     je _messages.failed_write
+    ret
+
+_open_file:
+    mov rax, 0x2                        ; open syscall
+    mov rdi, file                       ; file path
+    mov rsi, 0x400                      ; O_APPEND flags
+    or  rsi, 0x40                       ; O_CREAT
+    or  rsi, 0x1                        ; O_WRONLY
+    mov rdx, 0q666                        ; mode
+    syscall
+    mov qword[file_fd], rax
+
+    ret
+
+_write_rad_msg_to_file:
+    mov rax, 0x1
+    mov rdi, qword[file_fd]
+    mov rsi, file_random_msg
+    mov rdx, file_random_l
+    syscall
+
+    ret
+
+_write_sorted_msg_to_file:
+    mov rax, 0x1
+    mov rdi, qword[file_fd]
+    mov rsi, file_sorted_msg
+    mov rdx, file_sorted_l
+    syscall
+
+    ret
+
+
+_write_bytes_to_file:
+    mov rax, 0x1
+    mov rdi, qword[file_fd]
+    mov rsi, arra
+    mov dx, [byte_num]
+    syscall
+
+    ret
+
+_close_file:
+    mov rax, 0x3
+    mov rdi, qword [file_fd]
+    syscall
+
     ret
 
 ; deals with opening an closing a connection to the server
@@ -193,12 +246,12 @@ _messages:
         call _print
         jmp  _end
 
-    .failed_write
+    .failed_write:
         push failed_write_l
         push failed_write_msg
         call _print
         jmp  _end
-    .failed_mmap
+    .failed_mmap:
         push failed_mmap_l
         push failed_mmap_msg
         call _print
@@ -308,13 +361,18 @@ section .data ; Where you declare and store data, static
     failed_mmap_l: equ $ - failed_write_msg
     socket_closed_msg: db 0xA, "Closed socket.", 0xA, 0x0
     socket_closed_l: equ $ - socket_closed_msg
-
+    file_random_msg db 0xA, "----- BEGINNING OF RANDOM DATA -----", 0xA
+    file_random_l equ $ - file_random_msg
+    file_sorted_msg db 0xA, "----- END OF RANDOM DATA BEGINING OF SORTED DATA -----", 0xA
+    file_sorted_l equ $ - file_sorted_msg
+    file db "output.txt", 0x0
     ;Code for the algorithm
     arr db 5, 2, 4, 1, 3 ; the arr to be sorted
     arr_len equ $ - arr ; the length of the arr
 
 section .bss
     sock_fd resq 1       ; file discriptor of the socket
+    file_fd resq 1       ; file discriptor of the file
     msg_buf resb 1024    ; holds welcome message sent by server
     user_input resb 4    ; holds amount requested by user in ascii format
     byte_num resb 4      ; holds amount requested by user in hex format
