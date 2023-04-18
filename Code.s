@@ -25,8 +25,6 @@ global _start
 section .text ; Stores instructions for the computer to follow
 
 _start:
-    ;Code for the algorithm
-    mov ecx, arr_len                    ; set up a counter for the number of items left to sort
 
     call _connection.socket_created     ; creates socket to be connected to server
     call _connection.connect            ; connects socket to server socket
@@ -43,85 +41,8 @@ _start:
     call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
     call _print_arr                     ; prints array
 
-    ;call oloop
     call _connection.close              ; closes connection to server
 
-; Code for algorithm
-
-oloop:
-        cmp ecx, 1 ; check if there is only one item left to sort
-        jle sort_end ; if so, the arr is sorted, so jump to the end
-        
-        mov r8d, 0 ; reset the index of the minimum value to 0
-        mov r9d, ecx ; set up a counter for the inner loop
-        
-    iloop:
-        dec r9d ; decrement the counter
-        
-        cmp r9d, 0 ; check if the inner loop is finished
-        jle swap ; if so, the minimum value has been found, so jump to the swap
-        
-        movzx eax, byte [arr + r9] ; load the current value being compared
-        movzx ebx, byte [arr + r8] ; load the current minimum value
-        
-        cmp eax, ebx ; compare the values
-        
-        jge no_swap ; if the current value is greater than or equal to the minimum value, skip the swap
-        
-        mov r8d, r9d ; otherwise, update the index of the minimum value
-        
-    no_swap:
-        jmp iloop ; jump back to the top of the inner loop
-
-    swap:
-        movzx eax, byte [arr + rcx - 1] ; load the current value at the end of the unsorted portion
-        movzx ebx, byte [arr + r8] ; load the minimum value
-        mov byte [arr + rcx - 1], bl ; move the minimum value to the end of the unsorted portion
-        mov byte [arr + r8], al ; move the current value to where the minimum value was
-        dec ecx ; decrement the counter for the number of items left to sort
-        jmp oloop ; jump back to the top of the outer loop
-
-    sort_end:
-        ; the sorted arr is now in memory starting at the address "arr"
-        ; you can use it however you like from here
-        ; for example, you could print it out like this:
-        
-        mov ecx, arr_len ; set up a counter for the number of items in the arr
-        mov rsi, arr ; set up a pointer to the start of the arr
-        
-    print_loop:
-        cmp ecx, 0 ; check if all items have been printe ; if so, exit
-        
-        movzx eax, byte [rsi] ; load the current item
-        call print ; call a subroutine to print it out
-        mov eax, ', ' ; print a comma and a space
-        call print_char ; call a subroutine to print it out
-        add rsi, 1 ; move the pointer to the next item
-        dec ecx ; decrement the counter
-        jmp print_loop ; jump back to the top of the loop
-
-    exit:
-        mov eax, 60 ; exit syscall
-        xor edi, edi ; exit code 0
-        syscall
-
-    ; subroutines for printing out integers and characters
-    print:
-        push rax ; save rax
-        mov r8, 10 ; set up the divisor for division
-        xor rdx, rdx ; set up rdx to 0
-        div r8 ; divide rax by 10, quotient in rdx, remainder in rax
-
-    print_char:
-        push rax ; save the value of rax on the stack
-        mov edi, 1 ; Specify stdout as the file descrip
-        mov esi, esp ; Point to the character to print
-        mov edx, 1 ; specify that we want to print one character
-        mov eax, 4 ; specify the write syscall
-        syscall ; call the kernel to print the character
-        pop rax ; restore the value of rax from the stack
-        ret ; return from the subroutine
-;
 ; reads welcome and request messages sent by the server and stores them in msg_buf
 _read_message_from_socket:
     mov rax, 0x00                       ; read syscall
