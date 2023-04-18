@@ -14,12 +14,6 @@ struc sockaddr_in_type
     .sin_addr:          resd 1
     .sin_zero:          resd 2              
 endstruc
-; struct used for nanosleep
-struc timespec
-
-    .tv_sec             resb 1          ; seconds
-    .tv_nsec            resb 1          ; nanoseconds
-endstruc
 
 global _start
 section .text ; Stores instructions for the computer to follow
@@ -271,13 +265,6 @@ _ascii_to_hex:
     pop rdi
     pop rbp
 
-    ret
-; has the program wait 3 seconds before contiuing
-_sleep:
-    mov rax, 0x23                                               ; nanosleep syscall
-    mov rdi, timespec_i                                         ; time struct
-    syscall
-    
     ret
 
 _end:
