@@ -84,20 +84,30 @@ _read_from_user:
     ret
 ; reads the random bytes sent by the server, uses the users input to get exactly what the user requested
 _read_bytes_from_socket:
-                    
-    xor r10, r10
-    .loop:
-        mov rax, 0x0                    ; read syscall
-        mov rdi, qword [sock_fd]        ; socket fd
-        lea rsi, [arra + r10]          ; buffer pointer where message will be saved
-        mov rdx, 0x1                    ; message buffer size from user input
-        syscall
 
-        cmp rax, -1                         ; if this syscall returns -1 it indicates a failed read and therefore jumps to failed read message and exits.
-        je _messages.failed_read            ; jumps to fail message
-        inc r10
-        cmp r10, [byte_num]
-        jle _read_bytes_from_socket.loop
+    mov rax, 0x2d
+    mov rdi, [sock_fd]
+    mov rsi, arra
+    mov dx, [byte_num]
+    mov r10, 0x100
+    mov r8, 0x0
+    mov r9, 0x0
+    syscall
+
+
+    ; xor r10, r10
+    ; .loop:
+    ;     mov rax, 0x0                    ; read syscall
+    ;     mov rdi, qword [sock_fd]        ; socket fd
+    ;     lea rsi, [arra + r10]          ; buffer pointer where message will be saved
+    ;     mov rdx, 0x1                    ; message buffer size from user input
+    ;     syscall
+
+    ;     cmp rax, -1                         ; if this syscall returns -1 it indicates a failed read and therefore jumps to failed read message and exits.
+    ;     je _messages.failed_read            ; jumps to fail message
+    ;     inc r10
+    ;     cmp r10, [byte_num]
+    ;     jle _read_bytes_from_socket.loop
 
     ret
 ; extends the array to the length specified by the user
