@@ -1,6 +1,6 @@
 ;|Final Project
 ;|-----------------------------
-;|Created By:   Brennan Laing
+;|Created By:   Brennan Laing, Marcus Pollard
 ;|Class:        ITSC 204
 ;|Date:         04/04/2023 
 ;|      x86-64, NASM
