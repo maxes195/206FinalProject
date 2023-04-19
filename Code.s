@@ -14,7 +14,7 @@ struc sockaddr_in_type
     .sin_addr:          resd 1
     .sin_zero:          resd 2              
 endstruc
-
+;extern printf
 global _start
 section .text ; Stores instructions for the computer to follow
 
@@ -37,23 +37,25 @@ _start:
     call _write_rad_msg_to_file
     call _write_bytes_to_file
     call _write_sorted_msg_to_file
+
+    push rbp
+    mov rbp, rsp
+    xor rcx, rcx
+    mov cx, [byte_num] ; set up a counter for the number of items left to sort
+    call oloop
+    mov rsp, rbp
+    pop rbp
+    
+    call _write_bytes_to_file
     call _close_file
 
     call _connection.close              ; closes connection to server
 
+
 ;Code for algorithm
-
-extern printf
-
-main:
-    push rbp
-    mov rbp, rsp
-
-    mov ecx, arr_len ; set up a counter for the number of items left to sort
-
 oloop:
     cmp ecx, 1 ; check if there is only one item left to sort
-    jle sort_end ; if so, the arr is sorted, so jump to the end
+    jle exit;jle sort_end ; if so, the arr is sorted, so jump to the end
     
     mov r8d, 0 ; reset the index of the minimum value to 0
     mov r9d, ecx ; set up a counter for the inner loop
@@ -64,8 +66,8 @@ iloop:
     cmp r9d, 0 ; check if the inner loop is finished
     jle swap ; if so, the minimum value has been found, so jump to the swap
     
-    movzx eax, byte [arr + r9] ; load the current value being compared
-    movzx ebx, byte [arr + r8] ; load the current minimum value
+    movzx eax, byte [arra + r9] ; load the current value being compared
+    movzx ebx, byte [arra + r8] ; load the current minimum value
     
     cmp eax, ebx ; compare the values
     
@@ -75,78 +77,61 @@ iloop:
     
 no_swap:
     jmp iloop ; jump back to the top of the inner loop
-
+exit:
+    ret
 swap:
-    movzx eax, byte [arr + rcx - 1] ; load the current value at the end of the unsorted portion
-    movzx ebx, byte [arr + r8] ; load the minimum value
-    mov byte [arr + rcx - 1], bl ; move the minimum value to the end of the unsorted portion
-    mov byte [arr + r8], al ; move the current value to where the minimum value was
+    movzx eax, byte [arra + rcx - 1] ; load the current value at the end of the unsorted portion
+    movzx ebx, byte [arra + r8] ; load the minimum value
+    mov byte [arra + rcx - 1], bl ; move the minimum value to the end of the unsorted portion
+    mov byte [arra + r8], al ; move the current value to where the minimum value was
     dec ecx ; decrement the counter for the number of items left to sort
     jmp oloop ; jump back to the top of the outer loop
 
-sort_end:
+;sort_end:
     ; the sorted arr is now in memory starting at the address "arr"
     ; you can use it however you like from here
     ; for example, you could print it out like this:
     
-    mov rbx, 0  ; loop index
-    print_lp:
-        cmp rbx, arr_len
-        je exit
-        ; print 
-        lea rdi, [rel print_statetement]
-        xor rsi, rsi        ; rsi must be cleared
-        mov sil, byte [arr + rbx]   
-        xor rax, rax    ;   not using scalar registers
-        call printf wrt ..plt ; call a subroutine to print it out    
-        inc rbx
-        jmp print_lp
-
-    
-exit:
-        
-    mov rsp, rbp
-    pop rbp
-
-    mov eax, 60 ; exit syscall
-    xor edi, edi ; exit code 0
-    syscall
+    ;mov rbx, 0  ; loop index
+    ; print_lp:
+    ;     cmp rbx, [byte_num]
+    ;     je exit
+    ;     ; print 
+    ;     lea rdi, [rel print_statetement]
+    ;     xor rsi, rsi        ; rsi must be cleared
+    ;     mov sil, byte [arra + rbx]   
+    ;     xor rax, rax    ;   not using scalar registers
+    ;     call printf wrt ..plt ; call a subroutine to print it out    
+    ;     inc rbx
+    ;     jmp print_lp   
 
 ; subroutines for printing out integers and characters
-print:
+; print_ascii:
+;     push rax ; save the value of rax on the stack
+;     push rbx
+;     push rcx
+;     push rdx
+;     push rsi
+;     push rdi 
 
-    ;push rax ; save rax
-    ; why? :
-    ; mov r8, 10 ; set up the divisor for division
-    ; xor rdx, rdx ; set up rdx to 0
-    ;div r8 ; divide rax by 10, quotient in rdx, remainder in rax
-
-print_ascii:
-    push rax ; save the value of rax on the stack
-    push rbx
-    push rcx
-    push rdx
-    push rsi
-    push rdi 
-
-    ; needs character to be loaded into temp_ascii_buffer
-    ; also needs to add the ASCII bias to the character
+;     ; needs character to be loaded into temp_ascii_buffer
+;     ; also needs to add the ASCII bias to the character
     
-    mov rdi, 1 ; Specify stdout as the file descrip
-    mov rsi, rsp ; Point to the character to print
-    mov rdx, 1 ; specify that we want to print one character
-    mov rax, 4 ; specify the write syscall
-    syscall ; call the kernel to print the character
+;     mov rdi, 1 ; Specify stdout as the file descrip
+;     mov rsi, rsp ; Point to the character to print
+;     mov rdx, 1 ; specify that we want to print one character
+;     mov rax, 4 ; specify the write syscall
+;     syscall ; call the kernel to print the character
     
 
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax ; restore the value of rax from the stack
+;     pop rdi
+;     pop rsi
+;     pop rdx
+;     pop rcx
+;     pop rbx
+;     pop rax ; restore the value of rax from the stack
     
-    ret ; return from the subroutine
+;     ret ; return from the subroutine
 
 ; reads welcome and request messages sent by the server and stores them in msg_buf
 _read_message_from_socket:
@@ -249,8 +234,10 @@ _print_arr:
 
     cmp rax, -1
     je _messages.failed_write
+
     ret
 
+; opens file to be appended to
 _open_file:
     mov rax, 0x2                        ; open syscall
     mov rdi, file                       ; file path
@@ -263,6 +250,7 @@ _open_file:
 
     ret
 
+; writes msg showing the start of the random bytes
 _write_rad_msg_to_file:
     mov rax, 0x1
     mov rdi, qword[file_fd]
@@ -272,6 +260,7 @@ _write_rad_msg_to_file:
 
     ret
 
+; writes msg showing the start of the sorted bytes 
 _write_sorted_msg_to_file:
     mov rax, 0x1
     mov rdi, qword[file_fd]
@@ -281,7 +270,7 @@ _write_sorted_msg_to_file:
 
     ret
 
-
+; writes stored bytes to file
 _write_bytes_to_file:
     mov rax, 0x1
     mov rdi, qword[file_fd]
@@ -291,6 +280,7 @@ _write_bytes_to_file:
 
     ret
 
+; closes file when finished
 _close_file:
     mov rax, 0x3
     mov rdi, qword [file_fd]
@@ -334,6 +324,7 @@ _connection:
         jne _end
         call _messages.socket_closed
 
+; code that deals with failure messages
 _messages:
     .socket_failed:
         push socket_failed_l   
@@ -370,7 +361,7 @@ _messages:
         jmp  _end
 
       
-
+; prints messages
 _print:
     ; prologue
     push rbp
@@ -390,6 +381,7 @@ _print:
     pop rbp
     ret 0x10                                ; clean up the stack upon return - not strictly following C Calling Convention
 
+; code from server to turn ascii to hex, allows us to use user input to find the amount of bytes requested
 _ascii_to_hex:
     ; takes the first 8 bytes of the buffer in ascii form
     ; returns hex representation in RAX
@@ -474,9 +466,7 @@ section .data ; Where you declare and store data, static
     file_sorted_l equ $ - file_sorted_msg
     file db "output.txt", 0x0
     ;Code for the algorithm
-    arr: db 5, 2, 4, 1, 3, 10, 7, 18, 15, 236, 87, 14, 98 ; the arr to be sorted
-    arr_len equ $ - arr ; the length of the arr
-    print_statetement db "value is %d.", 0xA, 0x00
+    ;print_statetement db "value is %d.", 0xA, 0x00
 
 
 section .bss
