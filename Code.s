@@ -41,6 +41,113 @@ _start:
 
     call _connection.close              ; closes connection to server
 
+;Code for algorithm
+
+extern printf
+
+main:
+    push rbp
+    mov rbp, rsp
+
+    mov ecx, arr_len ; set up a counter for the number of items left to sort
+
+oloop:
+    cmp ecx, 1 ; check if there is only one item left to sort
+    jle sort_end ; if so, the arr is sorted, so jump to the end
+    
+    mov r8d, 0 ; reset the index of the minimum value to 0
+    mov r9d, ecx ; set up a counter for the inner loop
+    
+iloop:
+    dec r9d ; decrement the counter
+    
+    cmp r9d, 0 ; check if the inner loop is finished
+    jle swap ; if so, the minimum value has been found, so jump to the swap
+    
+    movzx eax, byte [arr + r9] ; load the current value being compared
+    movzx ebx, byte [arr + r8] ; load the current minimum value
+    
+    cmp eax, ebx ; compare the values
+    
+    jge no_swap ; if the current value is greater than or equal to the minimum value, skip the swap
+    
+    mov r8d, r9d ; otherwise, update the index of the minimum value
+    
+no_swap:
+    jmp iloop ; jump back to the top of the inner loop
+
+swap:
+    movzx eax, byte [arr + rcx - 1] ; load the current value at the end of the unsorted portion
+    movzx ebx, byte [arr + r8] ; load the minimum value
+    mov byte [arr + rcx - 1], bl ; move the minimum value to the end of the unsorted portion
+    mov byte [arr + r8], al ; move the current value to where the minimum value was
+    dec ecx ; decrement the counter for the number of items left to sort
+    jmp oloop ; jump back to the top of the outer loop
+
+sort_end:
+    ; the sorted arr is now in memory starting at the address "arr"
+    ; you can use it however you like from here
+    ; for example, you could print it out like this:
+    
+    mov rbx, 0  ; loop index
+    print_lp:
+        cmp rbx, arr_len
+        je exit
+        ; print 
+        lea rdi, [rel print_statetement]
+        xor rsi, rsi        ; rsi must be cleared
+        mov sil, byte [arr + rbx]   
+        xor rax, rax    ;   not using scalar registers
+        call printf wrt ..plt ; call a subroutine to print it out    
+        inc rbx
+        jmp print_lp
+
+    
+exit:
+        
+    mov rsp, rbp
+    pop rbp
+
+    mov eax, 60 ; exit syscall
+    xor edi, edi ; exit code 0
+    syscall
+
+; subroutines for printing out integers and characters
+print:
+
+    ;push rax ; save rax
+    ; why? :
+    ; mov r8, 10 ; set up the divisor for division
+    ; xor rdx, rdx ; set up rdx to 0
+    ;div r8 ; divide rax by 10, quotient in rdx, remainder in rax
+
+print_ascii:
+    push rax ; save the value of rax on the stack
+    push rbx
+    push rcx
+    push rdx
+    push rsi
+    push rdi 
+
+    ; needs character to be loaded into temp_ascii_buffer
+    ; also needs to add the ASCII bias to the character
+    
+    mov rdi, 1 ; Specify stdout as the file descrip
+    mov rsi, rsp ; Point to the character to print
+    mov rdx, 1 ; specify that we want to print one character
+    mov rax, 4 ; specify the write syscall
+    syscall ; call the kernel to print the character
+    
+
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax ; restore the value of rax from the stack
+    
+    ret ; return from the subroutine
+
 ; reads welcome and request messages sent by the server and stores them in msg_buf
 _read_message_from_socket:
     mov rax, 0x00                       ; read syscall
@@ -367,8 +474,10 @@ section .data ; Where you declare and store data, static
     file_sorted_l equ $ - file_sorted_msg
     file db "output.txt", 0x0
     ;Code for the algorithm
-    arr db 5, 2, 4, 1, 3 ; the arr to be sorted
+    arr: db 5, 2, 4, 1, 3, 10, 7, 18, 15, 236, 87, 14, 98 ; the arr to be sorted
     arr_len equ $ - arr ; the length of the arr
+    print_statetement db "value is %d.", 0xA, 0x00
+
 
 section .bss
     sock_fd resq 1       ; file discriptor of the socket
