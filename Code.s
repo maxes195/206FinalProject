@@ -87,51 +87,6 @@ swap:
     dec ecx ; decrement the counter for the number of items left to sort
     jmp oloop ; jump back to the top of the outer loop
 
-;sort_end:
-    ; the sorted arr is now in memory starting at the address "arr"
-    ; you can use it however you like from here
-    ; for example, you could print it out like this:
-    
-    ;mov rbx, 0  ; loop index
-    ; print_lp:
-    ;     cmp rbx, [byte_num]
-    ;     je exit
-    ;     ; print 
-    ;     lea rdi, [rel print_statetement]
-    ;     xor rsi, rsi        ; rsi must be cleared
-    ;     mov sil, byte [arra + rbx]   
-    ;     xor rax, rax    ;   not using scalar registers
-    ;     call printf wrt ..plt ; call a subroutine to print it out    
-    ;     inc rbx
-    ;     jmp print_lp   
-
-; subroutines for printing out integers and characters
-; print_ascii:
-;     push rax ; save the value of rax on the stack
-;     push rbx
-;     push rcx
-;     push rdx
-;     push rsi
-;     push rdi 
-
-;     ; needs character to be loaded into temp_ascii_buffer
-;     ; also needs to add the ASCII bias to the character
-    
-;     mov rdi, 1 ; Specify stdout as the file descrip
-;     mov rsi, rsp ; Point to the character to print
-;     mov rdx, 1 ; specify that we want to print one character
-;     mov rax, 4 ; specify the write syscall
-;     syscall ; call the kernel to print the character
-    
-
-;     pop rdi
-;     pop rsi
-;     pop rdx
-;     pop rcx
-;     pop rbx
-;     pop rax ; restore the value of rax from the stack
-    
-;     ret ; return from the subroutine
 
 ; reads welcome and request messages sent by the server and stores them in msg_buf
 _read_message_from_socket:
