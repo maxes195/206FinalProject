@@ -27,10 +27,12 @@ _start:
     call _write_text_to_screen          ; writes text from server to screen
 
     call _read_from_user                ; reads input from user (how many random bytes they want)
+    call _verify_input
     call _write_to_socket               ; sends input to server via socket
     
     call _extend_arr                    ; extends the array to the length inputted by the user
     call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
+    
     call _print_arr                     ; prints array
 
     call _open_file
@@ -136,6 +138,28 @@ _read_from_user:
     je _messages.failed_read            ; jumps to fail message
 
     ret
+; verifies that the input given does not exceed 500 to avoid SIGSEV error or buffer overflow
+_verify_input:
+    push rbp                             ; Preserve original rbp
+    mov rbp, rsp                        ; overwrite rbp with stack pointer
+
+    push qword[sock_fd]                 ; save fd into stack
+    push user_input                     ; save user_input onto stack
+    call _ascii_to_hex                  ; gets length requested using the users own input
+    mov qword[buf], rax                 ; saves output in register for easier access
+
+    cmp qword [buf], 0x00000501         ; Checks that the number saved its not bigger than 500
+
+    ; deallocate variables
+    mov rsp, rbp 
+    pop rbp
+    jl .con
+    jmp _messages.failed_buf            ; jumps to fail message
+    .con:
+        ret
+    ; restore callee function
+
+    ret 
 ; reads the random bytes sent by the server, uses the users input to get exactly what the user requested
 _read_bytes_from_socket:
 
@@ -304,6 +328,12 @@ _messages:
         push failed_write_msg
         call _print
         jmp  _end
+    .failed_buf:
+        push failed_buf_l
+        push failed_buf_msg
+        call _print
+        jmp  _end
+
     .failed_mmap:
         push failed_mmap_l
         push failed_mmap_msg
@@ -422,12 +452,15 @@ section .data ; Where you declare and store data, static
     file db "output.txt", 0x0
     ;Code for the algorithm
     ;print_statetement db "value is %d.", 0xA, 0x00
-
+    failed_buf_msg: db "That is outside the range specified.", 0xA, 0x0
+    failed_buf_l: equ $ - failed_buf_msg
+    f_buf equ 500
 
 section .bss
     sock_fd resq 1       ; file discriptor of the socket
     file_fd resq 1       ; file discriptor of the file
     msg_buf resb 1024    ; holds welcome message sent by server
+    buf resb f_buf
     user_input resb 4    ; holds amount requested by user in ascii format
     byte_num resb 4      ; holds amount requested by user in hex format
     arra resb 1          ; holds random bytes, will be extended by amount requested in the program
