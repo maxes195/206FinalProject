@@ -27,18 +27,17 @@ _start:
     call _write_text_to_screen          ; writes text from server to screen
 
     call _read_from_user                ; reads input from user (how many random bytes they want)
-    call _verify_input                  ; verifies that the number entered is withihn the range
+    call _verify_input                  ; verify that the imput set is within the valid range
     call _write_to_socket               ; sends input to server via socket
     
     call _extend_arr                    ; extends the array to the length inputted by the user
     call _read_bytes_from_socket        ; reads bytes from server and inputs them into array
-    
     call _print_arr                     ; prints array
 
-    call _open_file
-    call _write_rad_msg_to_file
-    call _write_bytes_to_file
-    call _write_sorted_msg_to_file
+    call _open_file                     ; opens the file
+    call _write_rad_msg_to_file         ; writes random bytes onto file
+    call _write_bytes_to_file           ; writes stored bytes onto file
+    call _write_sorted_msg_to_file      ; writes sorted bytes onto file
 
     push rbp
     mov rbp, rsp
@@ -50,7 +49,6 @@ _start:
     
     call _write_bytes_to_file
     call _close_file
-
     call _connection.close              ; closes connection to server
 
 
@@ -465,7 +463,7 @@ section .bss
     sock_fd resq 1       ; file discriptor of the socket
     file_fd resq 1       ; file discriptor of the file
     msg_buf resb 1024    ; holds welcome message sent by server
-    buf resb f_buf
+    buf resb f_buf       ; holds buffer for verification
     user_input resb 4    ; holds amount requested by user in ascii format
     byte_num resb 4      ; holds amount requested by user in hex format
     arra resb 1          ; holds random bytes, will be extended by amount requested in the program
