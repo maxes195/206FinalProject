@@ -27,7 +27,7 @@ _start:
     call _write_text_to_screen          ; writes text from server to screen
 
     call _read_from_user                ; reads input from user (how many random bytes they want)
-    call _verify_input                  ; verifies the value entered
+    call _verify_input
     call _write_to_socket               ; sends input to server via socket
     
     call _extend_arr                    ; extends the array to the length inputted by the user
@@ -148,15 +148,20 @@ _verify_input:
     call _ascii_to_hex                  ; gets length requested using the users own input
     mov qword[buf], rax                 ; saves output in register for easier access
 
+    cmp qword [buf], 0x00000100         ; checks that the number saved it is not less than 100
+    jl .err
     cmp qword [buf], 0x00000501         ; Checks that the number saved its not bigger than 500
 
     ; deallocate variables
     mov rsp, rbp 
     pop rbp
     jl .con
-    jmp _messages.failed_buf            ; jumps to fail message
+    jmp .err
+    .err:
+        jmp _messages.failed_buf            ; jumps to fail message
     .con:
         ret
+    
     ; restore callee function
 
     ret 
