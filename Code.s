@@ -27,7 +27,7 @@ _start:
     call _write_text_to_screen          ; writes text from server to screen
 
     call _read_from_user                ; reads input from user (how many random bytes they want)
-    call _verify_input
+    call _verify_input                  ; verifies that the number entered is withihn the range
     call _write_to_socket               ; sends input to server via socket
     
     call _extend_arr                    ; extends the array to the length inputted by the user
